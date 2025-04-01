@@ -10,7 +10,12 @@ public class LocationController {
 
 
     @Autowired
-    LocationController(){}
+    LocationController(
+
+
+    ){
+
+    }
 
 
 
