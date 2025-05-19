@@ -1,0 +1,74 @@
+/* reset some basics */
+
+
+/* Navbar wrapper */
+.navbar {
+  background-color: #6EAFC2;    /* light blue */
+  padding: 12px 0;
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+}
+
+/* center & flex layout */
+.container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.logo img {
+  width: 28px;
+  height: 28px;
+  margin-right: 8px;
+}
+
+.logo span {
+  color: #fff;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+/* Nav Links */
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 24px;
+}
+
+.nav-links a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: opacity 0.2s;
+}
+
+.nav-links a:hover {
+  opacity: 0.8;
+}
+
+/* CTA Button */
+.btn {
+  background-color: #008C5F;     /* green */
+  color: #fff;
+  text-decoration: none;
+  padding: 8px 20px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btn:hover {
+  background-color: #006E49;
+}
