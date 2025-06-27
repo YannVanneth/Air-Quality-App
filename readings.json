@@ -1,0 +1,737 @@
+[
+  {
+    "timestamp": "2025-06-27T16:31:00.326137",
+    "raw_bytes": [
+      66,
+      77,
+      0,
+      28,
+      0,
+      6,
+      0,
+      8,
+      0
+    ],
+    "raw_hex": [
+      "0x42",
+      "0x4D",
+      "0x00",
+      "0x1C",
+      "0x00",
+      "0x06",
+      "0x00",
+      "0x08",
+      "0x00"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 66,
+      "byte2": 77,
+      "hex": "0x424D",
+      "valid": true
+    },
+    "sensor_data": {
+      "pm25": {
+        "raw_value": 28,
+        "value": 28,
+        "unit": "\u03bcg/m\u00b3",
+        "bytes": [
+          0,
+          28
+        ],
+        "hex": "0x001C"
+      },
+      "pm10": {
+        "raw_value": 6,
+        "value": 6,
+        "unit": "\u03bcg/m\u00b3",
+        "bytes": [
+          0,
+          6
+        ],
+        "hex": "0x0006"
+      },
+      "additional_bytes": {
+        "byte6": {
+          "value": 0,
+          "hex": "0x00"
+        },
+        "byte7": {
+          "value": 8,
+          "hex": "0x08"
+        }
+      },
+      "checksum": {
+        "calculated": 185,
+        "received": 0,
+        "valid": false,
+        "hex": "0x00"
+      }
+    },
+    "air_quality": {
+      "pm25_level": "Moderate",
+      "pm10_level": "Good",
+      "overall_assessment": "Acceptable"
+    }
+  },
+  {
+    "timestamp": "2025-06-27T16:31:01.330516",
+    "raw_bytes": [
+      9,
+      0,
+      6,
+      0,
+      8,
+      0,
+      9,
+      4,
+      241
+    ],
+    "raw_hex": [
+      "0x09",
+      "0x00",
+      "0x06",
+      "0x00",
+      "0x08",
+      "0x00",
+      "0x09",
+      "0x04",
+      "0xF1"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 9,
+      "byte2": 0,
+      "hex": "0x0900",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:02.334425",
+    "raw_bytes": [
+      1,
+      74,
+      0,
+      67,
+      0,
+      11,
+      0,
+      1,
+      0
+    ],
+    "raw_hex": [
+      "0x01",
+      "0x4A",
+      "0x00",
+      "0x43",
+      "0x00",
+      "0x0B",
+      "0x00",
+      "0x01",
+      "0x00"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 1,
+      "byte2": 74,
+      "hex": "0x014A",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:03.338086",
+    "raw_bytes": [
+      0,
+      0,
+      50,
+      2,
+      154,
+      66,
+      77,
+      0,
+      28
+    ],
+    "raw_hex": [
+      "0x00",
+      "0x00",
+      "0x32",
+      "0x02",
+      "0x9A",
+      "0x42",
+      "0x4D",
+      "0x00",
+      "0x1C"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 0,
+      "byte2": 0,
+      "hex": "0x0000",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:04.341899",
+    "raw_bytes": [
+      0,
+      6,
+      0,
+      8,
+      0,
+      9,
+      0,
+      6,
+      0
+    ],
+    "raw_hex": [
+      "0x00",
+      "0x06",
+      "0x00",
+      "0x08",
+      "0x00",
+      "0x09",
+      "0x00",
+      "0x06",
+      "0x00"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 0,
+      "byte2": 6,
+      "hex": "0x0006",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:05.348143",
+    "raw_bytes": [
+      8,
+      0,
+      9,
+      5,
+      6,
+      1,
+      100,
+      0,
+      74
+    ],
+    "raw_hex": [
+      "0x08",
+      "0x00",
+      "0x09",
+      "0x05",
+      "0x06",
+      "0x01",
+      "0x64",
+      "0x00",
+      "0x4A"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 8,
+      "byte2": 0,
+      "hex": "0x0800",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:06.356682",
+    "raw_bytes": [
+      0,
+      12,
+      0,
+      1,
+      0,
+      0,
+      0,
+      50,
+      1
+    ],
+    "raw_hex": [
+      "0x00",
+      "0x0C",
+      "0x00",
+      "0x01",
+      "0x00",
+      "0x00",
+      "0x00",
+      "0x32",
+      "0x01"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 0,
+      "byte2": 12,
+      "hex": "0x000C",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:07.362692",
+    "raw_bytes": [
+      210,
+      66,
+      77,
+      0,
+      28,
+      0,
+      6,
+      0,
+      8
+    ],
+    "raw_hex": [
+      "0xD2",
+      "0x42",
+      "0x4D",
+      "0x00",
+      "0x1C",
+      "0x00",
+      "0x06",
+      "0x00",
+      "0x08"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 210,
+      "byte2": 66,
+      "hex": "0xD242",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:08.369108",
+    "raw_bytes": [
+      0,
+      9,
+      0,
+      6,
+      0,
+      8,
+      0,
+      9,
+      4
+    ],
+    "raw_hex": [
+      "0x00",
+      "0x09",
+      "0x00",
+      "0x06",
+      "0x00",
+      "0x08",
+      "0x00",
+      "0x09",
+      "0x04"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 0,
+      "byte2": 9,
+      "hex": "0x0009",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:09.375877",
+    "raw_bytes": [
+      248,
+      1,
+      83,
+      0,
+      70,
+      0,
+      11,
+      0,
+      1
+    ],
+    "raw_hex": [
+      "0xF8",
+      "0x01",
+      "0x53",
+      "0x00",
+      "0x46",
+      "0x00",
+      "0x0B",
+      "0x00",
+      "0x01"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 248,
+      "byte2": 1,
+      "hex": "0xF801",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:10.382720",
+    "raw_bytes": [
+      0,
+      0,
+      0,
+      50,
+      2,
+      173,
+      66,
+      77,
+      0
+    ],
+    "raw_hex": [
+      "0x00",
+      "0x00",
+      "0x00",
+      "0x32",
+      "0x02",
+      "0xAD",
+      "0x42",
+      "0x4D",
+      "0x00"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 0,
+      "byte2": 0,
+      "hex": "0x0000",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:11.392156",
+    "raw_bytes": [
+      28,
+      0,
+      6,
+      0,
+      8,
+      0,
+      9,
+      0,
+      6
+    ],
+    "raw_hex": [
+      "0x1C",
+      "0x00",
+      "0x06",
+      "0x00",
+      "0x08",
+      "0x00",
+      "0x09",
+      "0x00",
+      "0x06"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 28,
+      "byte2": 0,
+      "hex": "0x1C00",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:12.404024",
+    "raw_bytes": [
+      0,
+      8,
+      0,
+      9,
+      5,
+      6,
+      1,
+      100,
+      0
+    ],
+    "raw_hex": [
+      "0x00",
+      "0x08",
+      "0x00",
+      "0x09",
+      "0x05",
+      "0x06",
+      "0x01",
+      "0x64",
+      "0x00"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 0,
+      "byte2": 8,
+      "hex": "0x0008",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:13.411675",
+    "raw_bytes": [
+      74,
+      0,
+      12,
+      0,
+      3,
+      0,
+      0,
+      0,
+      50
+    ],
+    "raw_hex": [
+      "0x4A",
+      "0x00",
+      "0x0C",
+      "0x00",
+      "0x03",
+      "0x00",
+      "0x00",
+      "0x00",
+      "0x32"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 74,
+      "byte2": 0,
+      "hex": "0x4A00",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:14.419702",
+    "raw_bytes": [
+      1,
+      212,
+      66,
+      77,
+      0,
+      28,
+      0,
+      6,
+      0
+    ],
+    "raw_hex": [
+      "0x01",
+      "0xD4",
+      "0x42",
+      "0x4D",
+      "0x00",
+      "0x1C",
+      "0x00",
+      "0x06",
+      "0x00"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 1,
+      "byte2": 212,
+      "hex": "0x01D4",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:15.428072",
+    "raw_bytes": [
+      8,
+      0,
+      9,
+      0,
+      6,
+      0,
+      8,
+      0,
+      9
+    ],
+    "raw_hex": [
+      "0x08",
+      "0x00",
+      "0x09",
+      "0x00",
+      "0x06",
+      "0x00",
+      "0x08",
+      "0x00",
+      "0x09"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 8,
+      "byte2": 0,
+      "hex": "0x0800",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:16.442398",
+    "raw_bytes": [
+      4,
+      255,
+      1,
+      91,
+      0,
+      72,
+      0,
+      12,
+      0
+    ],
+    "raw_hex": [
+      "0x04",
+      "0xFF",
+      "0x01",
+      "0x5B",
+      "0x00",
+      "0x48",
+      "0x00",
+      "0x0C",
+      "0x00"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 4,
+      "byte2": 255,
+      "hex": "0x04FF",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:17.452188",
+    "raw_bytes": [
+      1,
+      0,
+      0,
+      0,
+      50,
+      2,
+      191,
+      66,
+      77
+    ],
+    "raw_hex": [
+      "0x01",
+      "0x00",
+      "0x00",
+      "0x00",
+      "0x32",
+      "0x02",
+      "0xBF",
+      "0x42",
+      "0x4D"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 1,
+      "byte2": 0,
+      "hex": "0x0100",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:18.462319",
+    "raw_bytes": [
+      0,
+      28,
+      0,
+      6,
+      0,
+      8,
+      0,
+      9,
+      0
+    ],
+    "raw_hex": [
+      "0x00",
+      "0x1C",
+      "0x00",
+      "0x06",
+      "0x00",
+      "0x08",
+      "0x00",
+      "0x09",
+      "0x00"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 0,
+      "byte2": 28,
+      "hex": "0x001C",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:19.472638",
+    "raw_bytes": [
+      6,
+      0,
+      8,
+      0,
+      9,
+      4,
+      241,
+      1,
+      74
+    ],
+    "raw_hex": [
+      "0x06",
+      "0x00",
+      "0x08",
+      "0x00",
+      "0x09",
+      "0x04",
+      "0xF1",
+      "0x01",
+      "0x4A"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 6,
+      "byte2": 0,
+      "hex": "0x0600",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  },
+  {
+    "timestamp": "2025-06-27T16:31:20.484654",
+    "raw_bytes": [
+      0,
+      67,
+      0,
+      11,
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "raw_hex": [
+      "0x00",
+      "0x43",
+      "0x00",
+      "0x0B",
+      "0x00",
+      "0x01",
+      "0x00",
+      "0x00",
+      "0x00"
+    ],
+    "packet_length": 9,
+    "header": {
+      "byte1": 0,
+      "byte2": 67,
+      "hex": "0x0043",
+      "valid": false
+    },
+    "error": "Invalid header - expected 'BM' (0x42 0x4D)"
+  }
+]
