@@ -38,7 +38,7 @@ class AirQualityLevel(Enum):
 class FormaldehydeSensor:
     """ZE08-CH2O Formaldehyde Sensor Interface"""
 
-    def __init__(self, port: str = '/dev/ttyUSB0', baudrate: int = 9600):
+    def __init__(self, port: str = '/dev/ttyS0', baudrate: int = 9600):
         self.port = port
         self.baudrate = baudrate
         self.ser = None
@@ -185,7 +185,7 @@ class CO2Sensor:
 class ParticleSensor:
     """ZH07 Particle Matter Sensor Interface"""
 
-    def __init__(self, port: str = '/dev/ttyAMA0', baudrate: int = 9600):
+    def __init__(self, port: str = '/dev/ttyS0', baudrate: int = 9600):
         self.port = port
         self.baudrate = baudrate
         self.ser = None

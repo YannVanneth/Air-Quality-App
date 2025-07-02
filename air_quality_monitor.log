@@ -1,0 +1,9 @@
+2025-07-02 15:20:33,499 - __main__ - INFO - Created new data file: air_quality_data.csv
+2025-07-02 15:20:33,499 - __main__ - ERROR - Formaldehyde sensor connection failed: [Errno 2] could not open port /dev/ttyUSB0: [Errno 2] No such file or directory: '/dev/ttyUSB0'
+2025-07-02 15:20:33,499 - __main__ - ERROR - CO2 sensor connection failed: [Errno 13] could not open port /dev/ttyS0: [Errno 13] Permission denied: '/dev/ttyS0'
+2025-07-02 15:20:33,499 - __main__ - ERROR - Particle sensor connection failed: [Errno 2] could not open port /dev/ttyAMA0: [Errno 2] No such file or directory: '/dev/ttyAMA0'
+2025-07-02 15:20:33,499 - __main__ - ERROR - Failed to connect to one or more sensors. Exiting.
+2025-07-02 15:22:38,806 - __main__ - ERROR - Formaldehyde sensor connection failed: [Errno 13] could not open port /dev/ttyS0: [Errno 13] Permission denied: '/dev/ttyS0'
+2025-07-02 15:22:38,806 - __main__ - ERROR - CO2 sensor connection failed: [Errno 13] could not open port /dev/ttyS0: [Errno 13] Permission denied: '/dev/ttyS0'
+2025-07-02 15:22:38,806 - __main__ - ERROR - Particle sensor connection failed: [Errno 13] could not open port /dev/ttyS0: [Errno 13] Permission denied: '/dev/ttyS0'
+2025-07-02 15:22:38,806 - __main__ - ERROR - Failed to connect to one or more sensors. Exiting.
