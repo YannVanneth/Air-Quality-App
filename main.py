@@ -1,461 +1,99 @@
-
-#!/usr/bin/env python3
-"""
-Comprehensive Air Quality Monitoring System
-Integrates multiple sensors for formaldehyde, CO2, particulate matter, and gases
-"""
-
-import serial
 import time
-import threading
-import logging
-import struct
-from enum import Enum
-from typing import Dict, Optional, Callable, Tuple, List, Any
+from data_models import logger, SensorType, SensorConfig
+from monitoring import AirQualityMonitor
+from storage import InMemoryStorage
+from alert import ConsoleAlertSystem, SimpleEventSystem
+from sensor import FormaldehydeSensor, MockCO2Sensor
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger('AirQualityMonitor')
 
-class SensorType(Enum):
-    FORMALDEHYDE = "ZE08-CH2O"
-    CO2 = "MH-Z19"
-    PARTICULATE = "ZH07"
-    MULTIGAS = "ZCE04B"
-    POLLUTION_LEVEL = "ZP07-MP503"
+def create_sensors() -> dict:
+    """Create and return a dictionary of sensors"""
+    sensors = {}
 
-class PollutionLevel(Enum):
-    EXCELLENT = 0
-    VERY_GOOD = 1
-    GOOD = 2
-    LIGHT = 3
-    MODERATE = 4
-    MEDIUM = 5
-    HEAVY = 6
-    VERY_HEAVY = 7
-    SEVERE = 8
-    EXTREMELY_SEVERE = 9
-    HAZARDOUS = 10
+    # Formaldehyde sensor
+    ch2o_config = SensorConfig(
+        sensor_id="ch2o_1",
+        sensor_type=SensorType.FORMALDEHYDE.value,
+        connection_params={"port": "/dev/ttyS0", "baudrate": 9600}
+    )
+    sensors["ch2o_1"] = FormaldehydeSensor(ch2o_config)
 
-class AirQualityMonitor:
-    """Integrated air quality monitoring system"""
-    
-    def __init__(self, config: Dict[str, Dict[str, Any]]):
-        """
-        Initialize air quality monitoring system
-        
-        Args:
-            config: Dictionary of sensor configurations
-                Example: {
-                    'formaldehyde': {'port': '/dev/ttyUSB0', 'baudrate': 9600},
-                    'co2': {'port': '/dev/ttyAMA0', 'baudrate': 9600},
-                    'particulate': {'port': '/dev/ttyS0', 'baudrate': 9600},
-                    'multigas': {'port': '/dev/ttyUSB1', 'baudrate': 9600},
-                }
-        """
-        self.sensors = {}
-        self.latest_readings = {}
-        self.running = False
-        self.read_interval = 60  # Default 60 seconds between full reads
-        self.sensor_thread = None
-        
-        # Initialize configured sensors
-        for sensor_type, params in config.items():
-            try:
-                if sensor_type == 'formaldehyde':
-                    self.sensors[sensor_type] = FormaldehydeSensor(**params)
-                elif sensor_type == 'co2':
-                    self.sensors[sensor_type] = CO2Sensor(**params)
-                elif sensor_type == 'particulate':
-                    self.sensors[sensor_type] = ParticulateSensor(**params)
-                elif sensor_type == 'multigas':
-                    self.sensors[sensor_type] = MultiGasSensor(**params)
-                elif sensor_type == 'pollution_level':
-                    self.sensors[sensor_type] = PollutionLevelSensor(**params)
-                logger.info(f"Initialized {sensor_type} sensor")
-            except Exception as e:
-                logger.error(f"Failed to initialize {sensor_type} sensor: {e}")
-    
-    def start_monitoring(self, interval: int = 60):
-        """
-        Start continuous monitoring
-        
-        Args:
-            interval: Seconds between readings
-        """
-        if self.running:
-            logger.warning("Monitoring already running")
-            return
-            
-        self.read_interval = interval
-        self.running = True
-        self.sensor_thread = threading.Thread(target=self._monitoring_loop)
-        self.sensor_thread.daemon = True
-        self.sensor_thread.start()
-        logger.info(f"Started monitoring with {self.read_interval}s interval")
-    
-    def stop_monitoring(self):
-        """Stop continuous monitoring"""
-        self.running = False
-        if self.sensor_thread:
-            self.sensor_thread.join(timeout=5)
-        logger.info("Monitoring stopped")
-    
-    def _monitoring_loop(self):
-        """Background monitoring loop"""
-        while self.running:
-            try:
-                self.read_all_sensors()
-                time.sleep(self.read_interval)
-            except Exception as e:
-                logger.error(f"Monitoring loop error: {e}")
-                time.sleep(10)
-    
-    def read_all_sensors(self) -> Dict[str, Dict[str, Any]]:
-        """Read all sensors and return combined data"""
-        readings = {}
-        for sensor_type, sensor in self.sensors.items():
-            try:
-                readings[sensor_type] = sensor.read()
-                self.latest_readings[sensor_type] = readings[sensor_type]
-            except Exception as e:
-                logger.error(f"Error reading {sensor_type}: {e}")
-                readings[sensor_type] = {'error': str(e)}
-        return readings
-    
-    def get_latest_readings(self) -> Dict[str, Dict[str, Any]]:
-        """Get the latest readings from all sensors"""
-        return self.latest_readings
-    
-    def get_air_quality_summary(self) -> Dict[str, Any]:
-        """Generate overall air quality summary"""
-        if not self.latest_readings:
-            return {"status": "No data available"}
-        
-        summary = {
-            "overall_quality": "UNKNOWN",
-            "primary_concerns": [],
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "details": {}
-        }
-        
-        # Process formaldehyde
-        if 'formaldehyde' in self.latest_readings:
-            hcho = self.latest_readings['formaldehyde']
-            mg_m3 = hcho.get('mg_m3', 0)
-            summary['details']['formaldehyde'] = {
-                'value': mg_m3,
-                'unit': 'mg/m³',
-                'level': self._get_formaldehyde_level(mg_m3)
-            }
-            if mg_m3 > 0.1:
-                summary['primary_concerns'].append('Formaldehyde')
-        
-        # Process CO2
-        if 'co2' in self.latest_readings:
-            co2 = self.latest_readings['co2']
-            ppm = co2.get('co2', 0)
-            summary['details']['co2'] = {
-                'value': ppm,
-                'unit': 'ppm',
-                'level': self._get_co2_level(ppm)
-            }
-            if ppm > 1000:
-                summary['primary_concerns'].append('CO2')
-        
-        # Process particulate matter
-        if 'particulate' in self.latest_readings:
-            pm = self.latest_readings['particulate']
-            pm25 = pm.get('pm25', 0)
-            pm10 = pm.get('pm10', 0)
-            summary['details']['pm25'] = {
-                'value': pm25,
-                'unit': 'µg/m³',
-                'level': self._get_pm25_level(pm25)
-            }
-            summary['details']['pm10'] = {
-                'value': pm10,
-                'unit': 'µg/m³',
-                'level': self._get_pm10_level(pm10)
-            }
-            if pm25 > 35 or pm10 > 50:
-                summary['primary_concerns'].append('Particulate Matter')
-        
-        # Determine overall quality
-        if not summary['primary_concerns']:
-            summary['overall_quality'] = "GOOD"
-        elif len(summary['primary_concerns']) == 1:
-            summary['overall_quality'] = "MODERATE"
-        else:
-            summary['overall_quality'] = "POOR"
-        
-        return summary
-    
-    @staticmethod
-    def _get_formaldehyde_level(mg_m3: float) -> str:
-        if mg_m3 < 0.08:
-            return "Excellent"
-        elif mg_m3 < 0.1:
-            return "Good"
-        elif mg_m3 < 0.12:
-            return "Moderate"
-        elif mg_m3 < 0.16:
-            return "Poor"
-        else:
-            return "Hazardous"
-    
-    @staticmethod
-    def _get_co2_level(ppm: int) -> str:
-        if ppm < 600:
-            return "Excellent"
-        elif ppm < 1000:
-            return "Good"
-        elif ppm < 1500:
-            return "Moderate"
-        elif ppm < 2000:
-            return "Poor"
-        else:
-            return "Hazardous"
-    
-    @staticmethod
-    def _get_pm25_level(ug_m3: float) -> str:
-        if ug_m3 < 12:
-            return "Good"
-        elif ug_m3 < 35:
-            return "Moderate"
-        elif ug_m3 < 55:
-            return "Unhealthy (Sensitive)"
-        elif ug_m3 < 150:
-            return "Unhealthy"
-        else:
-            return "Hazardous"
-    
-    @staticmethod
-    def _get_pm10_level(ug_m3: float) -> str:
-        if ug_m3 < 54:
-            return "Good"
-        elif ug_m3 < 154:
-            return "Moderate"
-        elif ug_m3 < 254:
-            return "Unhealthy (Sensitive)"
-        elif ug_m3 < 354:
-            return "Unhealthy"
-        else:
-            return "Hazardous"
+    # CO2 sensor
+    co2_config = SensorConfig(
+        sensor_id="co2_1",
+        sensor_type=SensorType.CO2.value,
+        connection_params={"port": "simulated"}
+    )
+    sensors["co2_1"] = MockCO2Sensor(co2_config)
 
-class FormaldehydeSensor:
-    """ZE08-CH2O Formaldehyde Sensor"""
-    
-    def __init__(self, port: str = '/dev/ttyUSB0', baudrate: int = 9600):
-        self.ser = serial.Serial(port, baudrate, timeout=2)
-        logger.info(f"Formaldehyde sensor connected on {port}")
-        self.switch_to_qa_mode()
-    
-    def switch_to_qa_mode(self):
-        """Switch to Q&A mode (request/response)"""
-        command = bytearray([0xFF, 0x01, 0x78, 0x41, 0x00, 0x00, 0x00, 0x00])
-        checksum = self._calculate_checksum(command[1:8])
-        command.append(checksum)
-        self.ser.write(command)
-        time.sleep(0.5)
-    
-    def _calculate_checksum(self, data):
-        checksum = sum(data) & 0xFF
-        return ((~checksum) + 1) & 0xFF
-    
-    def read(self) -> Dict[str, float]:
-        """Read formaldehyde concentration"""
-        command = bytearray([0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00])
-        checksum = self._calculate_checksum(command[1:8])
-        command.append(checksum)
-        
-        self.ser.write(command)
-        time.sleep(0.2)
-        
-        if self.ser.in_waiting >= 9:
-            response = self.ser.read(9)
-            if len(response) == 9 and response[0] == 0xFF and response[1] == 0x86:
-                ug_m3 = (response[2] << 8) | response[3]
-                ppb = (response[6] << 8) | response[7]
-                ppm = ppb / 1000.0
-                mg_m3 = ppm * 1.25  # Conversion factor
-                
-                return {
-                    'ug_m3': ug_m3,
-                    'ppb': ppb,
-                    'ppm': ppm,
-                    'mg_m3': mg_m3
-                }
-        return {'error': 'No valid response'}
+    return sensors
 
-class CO2Sensor:
-    """MH-Z19 CO2 Sensor"""
-    
-    def __init__(self, port: str = '/dev/ttyAMA0', baudrate: int = 9600):
-        self.ser = serial.Serial(port, baudrate, timeout=2)
-        logger.info(f"CO2 sensor connected on {port}")
-    
-    def read(self) -> Dict[str, int]:
-        """Read CO2 concentration"""
-        cmd = bytearray([0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79])
-        self.ser.write(cmd)
-        time.sleep(0.5)
-        
-        if self.ser.in_waiting >= 9:
-            response = self.ser.read(9)
-            if response[0] == 0xFF and response[1] == 0x86:
-                co2 = (response[2] << 8) | response[3]
-                return {'co2': co2}
-        return {'error': 'No valid response'}
-
-class ParticulateSensor:
-    """ZH07 Particulate Matter Sensor"""
-    
-    def __init__(self, port: str = '/dev/ttyS0', baudrate: int = 9600):
-        self.ser = serial.Serial(port, baudrate, timeout=2)
-        logger.info(f"Particulate sensor connected on {port}")
-    
-    def read(self) -> Dict[str, float]:
-        """Read PM2.5 and PM10 concentrations"""
-        request = bytes([0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79])
-        self.ser.write(request)
-        time.sleep(0.1)
-        
-        if self.ser.in_waiting >= 9:
-            data = self.ser.read(9)
-            if len(data) == 9 and data[0] == 0xFF and data[1] == 0x86:
-                pm25 = (data[2] << 8) | data[3]
-                pm10 = (data[4] << 8) | data[5]
-                return {'pm25': pm25, 'pm10': pm10}
-        return {'error': 'No valid response'}
-
-class MultiGasSensor:
-    """ZCE04B Multi-Gas Sensor (CO, H2S, CH4, O2)"""
-    
-    def __init__(self, port: str = '/dev/ttyUSB1', baudrate: int = 9600, slave_id: int = 1):
-        self.ser = serial.Serial(port, baudrate, timeout=2)
-        self.slave_id = slave_id
-        logger.info(f"Multi-gas sensor connected on {port}")
-    
-    def _calculate_crc16_modbus(self, data):
-        crc = 0xFFFF
-        for byte in data:
-            crc ^= byte
-            for _ in range(8):
-                if crc & 0x0001:
-                    crc = (crc >> 1) ^ 0xA001
-                else:
-                    crc >>= 1
-        return crc
-    
-    def _create_modbus_frame(self, function_code, start_reg, num_regs):
-        frame = bytearray([
-            self.slave_id,
-            function_code,
-            (start_reg >> 8) & 0xFF,
-            start_reg & 0xFF,
-            (num_regs >> 8) & 0xFF,
-            num_regs & 0xFF
-        ])
-        crc = self._calculate_crc16_modbus(frame)
-        frame.append(crc & 0xFF)
-        frame.append((crc >> 8) & 0xFF)
-        return frame
-    
-    def read(self) -> Dict[str, float]:
-        """Read gas concentrations"""
-        frame = self._create_modbus_frame(0x03, 0x0000, 4)
-        self.ser.write(frame)
-        time.sleep(0.5)
-        
-        if self.ser.in_waiting >= 11:
-            response = self.ser.read(11)
-            if len(response) == 11:
-                # Parse response: [slave_id, func, byte_count, CO, H2S, CH4, O2, crc_low, crc_high]
-                co = (response[3] << 8) | response[4]
-                h2s = (response[5] << 8) | response[6]
-                ch4 = (response[7] << 8) | response[8]
-                o2 = (response[9] << 8) | response[10]
-                
-                return {
-                    'co': co / 100.0,
-                    'h2s': h2s / 100.0,
-                    'ch4': ch4 / 100.0,
-                    'o2': o2 / 100.0
-                }
-        return {'error': 'No valid response'}
-
-class PollutionLevelSensor:
-    """ZP07-MP503 Air Quality Detection Module"""
-    
-    PWM_SIGNAL_MAP = {
-        0: (0, 100),     # Excellent
-        1: (10, 90),     # Very Good
-        2: (20, 80),     # Good
-        3: (30, 70),     # Light Pollution
-        4: (40, 60),     # Moderate
-        5: (50, 50),     # Medium
-        6: (60, 40),     # Heavy
-        7: (70, 30),     # Very Heavy
-        8: (80, 20),     # Severe
-        9: (90, 10),     # Extremely Severe
-        10: (100, 0)     # Hazardous
-    }
-    
-    def __init__(self, gpio_pin: int = 17):
-        self.gpio_pin = gpio_pin
-        self.level = 0
-        logger.info(f"Pollution level sensor on GPIO {gpio_pin}")
-        # In a real implementation, setup GPIO here
-    
-    def read(self) -> Dict[str, Any]:
-        """Read pollution level (0-10)"""
-        # Simulated reading - real implementation would measure PWM
-        return {
-            'pollution_level': self.level,
-            'description': PollutionLevel(self.level).name
-        }
 
 def main():
-    """Main test function"""
-    print("Integrated Air Quality Monitoring System")
+    """Main application entry point"""
+    print("🌬️  Integrated Air Quality Monitoring System")
     print("=" * 60)
-    
-    # Sensor configuration
-    config = {
-        'formaldehyde': {'port': '/dev/ttyUSB0', 'baudrate': 9600},
-        'co2': {'port': '/dev/ttyAMA0', 'baudrate': 9600},
-        'particulate': {'port': '/dev/ttyS0', 'baudrate': 9600},
-        'multigas': {'port': '/dev/ttyUSB1', 'baudrate': 9600, 'slave_id': 1},
-        'pollution_level': {'gpio_pin': 17}
-    }
-    
-    # Create monitor
-    monitor = AirQualityMonitor(config)
-    
+
     try:
-        # Start continuous monitoring
+        # Create system components
+        sensors = create_sensors()
+        storage = InMemoryStorage()
+        alert_system = ConsoleAlertSystem()
+        event_system = SimpleEventSystem()
+
+        # Create monitor
+        monitor = AirQualityMonitor(
+            sensors=sensors,
+            storage=storage,
+            alert_system=alert_system,
+            event_system=event_system
+        )
+
+        # Start monitoring
         monitor.start_monitoring(interval=30)
-        
-        # Run for 2 minutes
-        for _ in range(8):
-            time.sleep(15)
-            summary = monitor.get_air_quality_summary()
-            print("\nAir Quality Summary:")
-            print(f"Overall Quality: {summary['overall_quality']}")
-            if summary['primary_concerns']:
-                print(f"Primary Concerns: {', '.join(summary['primary_concerns'])}")
-            
-            # Print details
-            for sensor, data in summary['details'].items():
-                print(f"{sensor.upper()}: {data['value']} {data['unit']} ({data['level']})")
-        
+        print("✅ Monitoring started. Press Ctrl+C to stop.")
+        print("\n📊 Live Data:")
+
+        # Simple console interface
+        iteration = 0
+        while monitor.is_monitoring():
+            time.sleep(10)
+            iteration += 1
+
+            # Print latest snapshot every 10 seconds
+            snapshot = monitor.latest_snapshot
+            if snapshot:
+                print(
+                    f"\n--- Update {iteration} ({snapshot.timestamp.strftime('%H:%M:%S')}) ---")
+                print(f"🏁 Overall Quality: {snapshot.overall_quality.upper()}")
+
+                for reading in snapshot.readings:
+                    status = "✅ OK" if reading.is_valid() else "❌ ERROR"
+                    primary = reading.get_primary_value()
+                    if primary is not None:
+                        units = "mg/m³" if "formaldehyde" in reading.sensor_type else "ppm"
+                        print(f"   {reading.sensor_id}: {
+                              primary:.3f} {units} - {status}")
+                    else:
+                        print(f"   {reading.sensor_id}: No data - {status}")
+
+            # Print system health every 30 seconds
+            if iteration % 3 == 0:
+                health = monitor.get_system_health()
+                print(f"\n💊 System Health: {health.health_percentage:.1f}%")
+                print(f"   Healthy sensors: {
+                      health.healthy_sensors}/{health.total_sensors}")
+                print(f"   Uptime: {health.uptime_seconds:.0f} seconds")
+
     except KeyboardInterrupt:
-        print("\nStopping monitoring...")
+        print("\n\n🛑 Stopping monitoring...")
+    except Exception as e:
+        logger.error(f"Application error: {e}")
+        print(f"❌ Error: {e}")
     finally:
-        monitor.stop_monitoring()
-        print("System shutdown")
+        if 'monitor' in locals():
+            monitor.stop_monitoring()
+
 
 if __name__ == "__main__":
     main()
-
