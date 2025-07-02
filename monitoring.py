@@ -22,15 +22,14 @@ logger = logging.getLogger('Monitoring')
 class AirQualityMonitor:
     """Integrated air quality monitoring system"""
 
-    def __init__(self, sensors: Dict[str, SensorInterface], storage: DataStorageInterface,
-                 alert_system: AlertInterface, event_system: EventInterface):
+    def __init__(self, sensors, storage, alert_system, event_system):
         self.sensors = sensors
         self.storage = storage
         self.alert_system = alert_system
         self.event_system = event_system
         self.running = False
         self.thread = None
-        self.latest_snapshot: Optional[AirQualitySnapshot] = None
+        self.latest_snapshot = None
         self.start_time = datetime.now(timezone.utc)
 
         # Subscribe to events
@@ -133,7 +132,7 @@ class AirQualityMonitor:
             uptime_seconds=uptime
         )
 
-    def add_sensor(self, sensor: SensorInterface) -> bool:
+    def add_sensor(self, sensor) -> bool:
         """Add sensor to monitoring"""
         sensor_id = sensor.get_config().sensor_id
         if sensor_id in self.sensors:

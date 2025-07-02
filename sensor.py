@@ -1,6 +1,6 @@
 
 from datetime import datetime
-
+import random
 from logging import info, error
 from datetime import timezone
 from typing import Optional, Callable, Dict, Any, Tuple
@@ -20,8 +20,8 @@ class BaseSensor:
     def __init__(self, config: SensorConfig):
         self.config = config
         self.error_count = 0
-        self.last_reading: Optional[SensorReading] = None
-        self.communication: Optional[CommunicationInterface] = None
+        self.last_reading = None
+        self.communication = None
 
     def get_config(self) -> SensorConfig:
         """Get sensor configuration"""
@@ -69,8 +69,6 @@ class FormaldehydeSensor(BaseSensor):
                 return self._create_error_reading("Sensor not connected")
 
             # Simulate reading formaldehyde concentration
-            # In real implementation, this would read from actual sensor
-            import random
             concentration = random.uniform(0.05, 0.15)  # mg/m³
 
             # Assess quality based on concentration
@@ -106,9 +104,7 @@ class MockCO2Sensor(BaseSensor):
     def read(self) -> SensorReading:
         """Read CO2 sensor data"""
         try:
-            import random
             ppm = random.uniform(400, 1200)  # Typical indoor range
-
             quality_level = QualityAssessment.assess_co2(ppm)
 
             reading = SensorReading(
@@ -125,32 +121,3 @@ class MockCO2Sensor(BaseSensor):
 
         except Exception as e:
             return self._create_error_reading(str(e))
-
-
-# =============================================================================
-# COMMUNICATION IMPLEMENTATIONS
-# =============================================================================
-
-class SerialCommunication:
-    """Serial communication implementation"""
-
-    def __init__(self):
-        self.ser = None
-
-    def connect(self, connection_params: Dict[str, Any]) -> bool:
-        try:
-            # For demo purposes, simulate connection
-            # In real implementation: import serial; self.ser = serial.Serial(...)
-            logger.info(f"Simulating connection to {
-                connection_params.get('port', 'unknown')}")
-            return True
-        except Exception as e:
-            logger.error(f"Serial connection failed: {e}")
-            return False
-
-    def is_connected(self) -> bool:
-        return True  # Simulated connection
-
-    def read_data(self, timeout: float = 1.0) -> bytes:
-        # Simulate data reading
-        return b"simulated_data"

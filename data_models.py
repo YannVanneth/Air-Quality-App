@@ -142,13 +142,15 @@ class AirQualitySnapshot:
 
 @dataclass
 class SystemHealth:
+    """System health status"""
+    timestamp: datetime
     total_sensors: int
     healthy_sensors: int
     failed_sensors: int
     monitoring_active: bool
-    uptime_seconds: float  # Changed to required float
-    ml_model_ready: bool = False  # Optional with default
-    last_error: Optional[str] = None  # Optional
+    uptime_seconds: float
+    ml_model_ready: bool = False
+    last_error: Optional[str] = None
 
     @property
     def health_percentage(self) -> float:
@@ -170,8 +172,9 @@ class SystemHealth:
         data['is_healthy'] = self.is_healthy
         return data
 
-
 # Quality assessment functions
+
+
 class QualityAssessment:
     """Static methods for assessing air quality levels"""
 
