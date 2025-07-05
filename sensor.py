@@ -1,4 +1,3 @@
-
 import serial
 import time
 import json
@@ -11,6 +10,7 @@ from datetime import datetime
 import sqlite3
 from pathlib import Path
 import statistics
+import queue
 
 
 logging.basicConfig(
@@ -62,25 +62,95 @@ class SensorReading:
         }
 
 
-class ZCE04BSensor:
-    def __init__(self, port: str = '/dev/ttyS0', baudrate: int = 9600):
+class SerialManager:
+    """Manages shared serial port access between sensors"""
+
+    def __init__(self, port: str, baudrate: int = 9600):
         self.port = port
         self.baudrate = baudrate
         self.ser = None
+        self.lock = threading.Lock()
+        self.logger = logging.getLogger(f"{__name__}.SerialManager")
+        self.is_connected = False
+
+    def connect(self) -> bool:
+        """Connect to serial port"""
+        try:
+            if not self.is_connected:
+                self.ser = serial.Serial(self.port, self.baudrate, timeout=2)
+                self.is_connected = True
+                self.logger.info(f"Connected to {self.port} at {
+                                 self.baudrate} baud")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to connect to {self.port}: {e}")
+            return False
+
+    def disconnect(self):
+        """Disconnect from serial port"""
+        with self.lock:
+            if self.ser and self.ser.is_open:
+                self.ser.close()
+                self.is_connected = False
+                self.logger.info(f"Disconnected from {self.port}")
+
+    def read_write(self, write_data: bytes = None, read_timeout: float = 1.0) -> Optional[bytes]:
+        """Thread-safe read/write operation"""
+        with self.lock:
+            if not self.is_connected or not self.ser:
+                return None
+
+            try:
+                # Clear input buffer
+                if self.ser.in_waiting > 0:
+                    self.ser.read(self.ser.in_waiting)
+
+                # Write data if provided
+                if write_data:
+                    self.ser.write(write_data)
+                    self.ser.flush()
+                    time.sleep(0.1)  # Allow response time
+
+                # Read response
+                start_time = time.time()
+                buffer = bytearray()
+
+                while time.time() - start_time < read_timeout:
+                    if self.ser.in_waiting > 0:
+                        data = self.ser.read(self.ser.in_waiting)
+                        buffer.extend(data)
+                        if len(buffer) > 0:
+                            break
+                    time.sleep(0.01)
+
+                return bytes(buffer) if buffer else None
+
+            except Exception as e:
+                self.logger.error(f"Serial operation failed: {e}")
+                return None
+
+
+class ZCE04BSensor:
+    def __init__(self, serial_manager: SerialManager):
+        self.serial_manager = serial_manager
         self.logger = logging.getLogger(f"{__name__}.ZCE04B")
-        self.status = SensorReading.DISCONNECTED
+        # Fixed: was SensorReading.DISCONNECTED
+        self.status = SensorStatus.DISCONNECTED
         self.last_reading = None
 
     def connect(self) -> bool:
+        """Initialize sensor connection"""
         try:
             self.status = SensorStatus.CONNECTING
-            self.ser = serial.Serial(self.port, self.baudrate, timeout=2)
-            self.logger.info(f"Connected to ZCE04B on {
-                             self.port} at {self.baudrate} baud")
-            self.status = SensorStatus.READY
-            return True
+            if self.serial_manager.connect():
+                self.logger.info("ZCE04B sensor initialized")
+                self.status = SensorStatus.READY
+                return True
+            else:
+                self.status = SensorStatus.ERROR
+                return False
         except Exception as e:
-            self.logger.error(f"Failed to connect to ZCE04B: {e}")
+            self.logger.error(f"Failed to initialize ZCE04B: {e}")
             self.status = SensorStatus.ERROR
             return False
 
@@ -123,51 +193,40 @@ class ZCE04BSensor:
             self.status = SensorStatus.READING
 
             frame = self.create_modbus_frame(0x01, 0x03, 0x0000, 0x0004)
+            response = self.serial_manager.read_write(frame, read_timeout=2.0)
 
-            if self.ser.in_waiting > 0:
-                self.ser.read(self.ser.in_waiting)  # Clear buffer
+            if response and len(response) >= 9:
+                # Extract gas concentrations
+                co_ppm = (response[3] << 8) | response[4] if len(
+                    response) > 4 else 0
+                h2s_ppm = (response[5] << 8) | response[6] if len(
+                    response) > 6 else 0
+                ch4_ppm = (response[7] << 8) | response[8] if len(
+                    response) > 8 else 0
+                o2_percent = response[9] if len(response) > 9 else 210  # 21.0%
 
-            self.ser.write(frame)
-            self.ser.flush()
-            time.sleep(0.1)
+                data = {
+                    'co_ppm': co_ppm / 100.0,
+                    'h2s_ppm': h2s_ppm / 100.0,
+                    'ch4_ppm': ch4_ppm / 100.0,
+                    'o2_percent': o2_percent / 10.0
+                }
 
-            if self.ser.in_waiting > 0:
-                response = self.ser.read(self.ser.in_waiting)
+                quality_level = self._determine_quality_level(data)
 
-                # Parse response (simplified - actual parsing depends on sensor response format)
-                if len(response) >= 9:
-                    # Extract gas concentrations (example values)
-                    co_ppm = (response[3] << 8) | response[4] if len(
-                        response) > 4 else 0
-                    h2s_ppm = (response[5] << 8) | response[6] if len(
-                        response) > 6 else 0
-                    ch4_ppm = (response[7] << 8) | response[8] if len(
-                        response) > 8 else 0
-                    o2_percent = response[9] if len(response) > 9 else 21
+                reading = SensorReading(
+                    timestamp=datetime.now(),
+                    sensor_id='ZCE04B_001',
+                    sensor_type='multi_gas',
+                    data=data,
+                    status=SensorStatus.READY,
+                    quality_level=quality_level,
+                    raw_data=response
+                )
 
-                    data = {
-                        'co_ppm': co_ppm / 100.0,  # Convert to proper units
-                        'h2s_ppm': h2s_ppm / 100.0,
-                        'ch4_ppm': ch4_ppm / 100.0,
-                        'o2_percent': o2_percent / 10.0
-                    }
-
-                    # Determine air quality level based on gas concentrations
-                    quality_level = self._determine_quality_level(data)
-
-                    reading = SensorReading(
-                        timestamp=datetime.now(),
-                        sensor_id='ZCE04B_001',
-                        sensor_type='multi_gas',
-                        data=data,
-                        status=SensorStatus.READY,
-                        quality_level=quality_level,
-                        raw_data=response
-                    )
-
-                    self.last_reading = reading
-                    self.status = SensorStatus.READY
-                    return reading
+                self.last_reading = reading
+                self.status = SensorStatus.READY
+                return reading
 
         except Exception as e:
             self.logger.error(f"Error reading ZCE04B data: {e}")
@@ -196,31 +255,29 @@ class ZCE04BSensor:
 
     def disconnect(self):
         """Disconnect from sensor"""
-        if self.ser and self.ser.is_open:
-            self.ser.close()
         self.status = SensorStatus.DISCONNECTED
 
 
 class ZH07Sensor:
-    def __init__(self, port: str = '/dev/ttyS0', baudrate: int = 9600):
-        self.port = port
-        self.baudrate = baudrate
-        self.ser = None
+    def __init__(self, serial_manager: SerialManager):
+        self.serial_manager = serial_manager
         self.logger = logging.getLogger(f'{__name__}.ZH07')
         self.status = SensorStatus.DISCONNECTED
         self.last_reading = None
 
     def connect(self) -> bool:
+        """Initialize sensor connection"""
         try:
             self.status = SensorStatus.CONNECTING
-            self.ser = serial.Serial(self.port, self.baudrate, timeout=2)
-            self.ser.reset_input_buffer()
-            self.logger.info(f"Connected to ZH07 on {
-                             self.port} at {self.baudrate} baud")
-            self.status = SensorStatus.READY
-            return True
+            if self.serial_manager.connect():
+                self.logger.info("ZH07 sensor initialized")
+                self.status = SensorStatus.READY
+                return True
+            else:
+                self.status = SensorStatus.ERROR
+                return False
         except Exception as e:
-            self.logger.error(f"Failed to connect to ZH07: {e}")
+            self.logger.error(f"Failed to initialize ZH07: {e}")
             self.status = SensorStatus.ERROR
             return False
 
@@ -232,51 +289,44 @@ class ZH07Sensor:
         try:
             self.status = SensorStatus.READING
 
-            # Look for BM header
-            buffer = bytearray()
-            start_time = time.time()
+            # Read data from serial port
+            response = self.serial_manager.read_write(read_timeout=3.0)
 
-            while time.time() - start_time < 3:  # 3 second timeout
-                if self.ser.in_waiting > 0:
-                    data = self.ser.read(self.ser.in_waiting)
-                    buffer.extend(data)
+            if response:
+                # Look for BM header (0x42 0x4D)
+                for i in range(len(response) - 8):
+                    if response[i] == 0x42 and response[i+1] == 0x4D:
+                        if i + 8 < len(response):
+                            packet = response[i:i+9]
 
-                    # Look for BM header (0x42 0x4D)
-                    for i in range(len(buffer) - 8):
-                        if buffer[i] == 0x42 and buffer[i+1] == 0x4D:
-                            if i + 8 < len(buffer):
-                                packet = buffer[i:i+9]
+                            # Verify checksum
+                            calculated_checksum = sum(packet[0:8]) % 256
+                            if calculated_checksum == packet[8]:
+                                # Extract PM values
+                                pm25 = (packet[2] << 8) | packet[3]
+                                pm10 = (packet[4] << 8) | packet[5]
 
-                                # Verify checksum
-                                calculated_checksum = sum(packet[0:8]) % 256
-                                if calculated_checksum == packet[8]:
-                                    # Extract PM values
-                                    pm25 = (packet[2] << 8) | packet[3]
-                                    pm10 = (packet[4] << 8) | packet[5]
+                                data = {
+                                    'pm25_ugm3': pm25,
+                                    'pm10_ugm3': pm10
+                                }
 
-                                    data = {
-                                        'pm25_ugm3': pm25,
-                                        'pm10_ugm3': pm10
-                                    }
+                                quality_level = self._determine_quality_level(
+                                    data)
 
-                                    quality_level = self._determine_quality_level(
-                                        data)
+                                reading = SensorReading(
+                                    timestamp=datetime.now(),
+                                    sensor_id='ZH07_001',
+                                    sensor_type='particulate_matter',
+                                    data=data,
+                                    status=SensorStatus.READY,
+                                    quality_level=quality_level,
+                                    raw_data=bytes(packet)
+                                )
 
-                                    reading = SensorReading(
-                                        timestamp=datetime.now(),
-                                        sensor_id='ZH07_001',
-                                        sensor_type='particulate_matter',
-                                        data=data,
-                                        status=SensorStatus.READY,
-                                        quality_level=quality_level,
-                                        raw_data=bytes(packet)
-                                    )
-
-                                    self.last_reading = reading
-                                    self.status = SensorStatus.READY
-                                    return reading
-
-                time.sleep(0.1)
+                                self.last_reading = reading
+                                self.status = SensorStatus.READY
+                                return reading
 
         except Exception as e:
             self.logger.error(f"Error reading ZH07 data: {e}")
@@ -305,13 +355,10 @@ class ZH07Sensor:
 
     def disconnect(self):
         """Disconnect from sensor"""
-        if self.ser and self.ser.is_open:
-            self.ser.close()
         self.status = SensorStatus.DISCONNECTED
 
 
 class ZP07Sensor:
-
     def __init__(self, warm_up_time: int = 180):
         self.warm_up_time = warm_up_time
         self.logger = logging.getLogger(f'{__name__}.ZP07')
@@ -417,46 +464,133 @@ class ZP07Sensor:
         self.status = SensorStatus.DISCONNECTED
 
 
+class SensorManager:
+    """Manages multiple sensors with coordinated reading"""
+
+    def __init__(self):
+        self.sensors = {}
+        self.serial_managers = {}
+        self.logger = logging.getLogger(f"{__name__}.SensorManager")
+        self.reading_queue = queue.Queue()
+        self.is_running = False
+
+    def add_serial_sensor(self, sensor_name: str, sensor_class, port: str, baudrate: int = 9600):
+        """Add a serial-based sensor"""
+        if port not in self.serial_managers:
+            self.serial_managers[port] = SerialManager(port, baudrate)
+
+        sensor = sensor_class(self.serial_managers[port])
+        self.sensors[sensor_name] = sensor
+
+    def add_standalone_sensor(self, sensor_name: str, sensor_instance):
+        """Add a standalone sensor (like ZP07)"""
+        self.sensors[sensor_name] = sensor_instance
+
+    def connect_all(self) -> Dict[str, bool]:
+        """Connect all sensors"""
+        results = {}
+        for name, sensor in self.sensors.items():
+            try:
+                results[name] = sensor.connect()
+                if results[name]:
+                    self.logger.info(f"Connected {name}")
+                else:
+                    self.logger.error(f"Failed to connect {name}")
+            except Exception as e:
+                self.logger.error(f"Error connecting {name}: {e}")
+                results[name] = False
+        return results
+
+    def read_all_sensors(self) -> List[SensorReading]:
+        """Read from all sensors with proper timing"""
+        readings = []
+
+        # Read serial sensors with delays to avoid conflicts
+        serial_sensors = [name for name, sensor in self.sensors.items()
+                          if hasattr(sensor, 'serial_manager')]
+
+        for sensor_name in serial_sensors:
+            sensor = self.sensors[sensor_name]
+            try:
+                reading = sensor.read_data()
+                if reading:
+                    readings.append(reading)
+                    self.logger.debug(f"Read data from {sensor_name}")
+                time.sleep(0.5)  # Delay between serial sensor reads
+            except Exception as e:
+                self.logger.error(f"Error reading {sensor_name}: {e}")
+
+        # Read standalone sensors
+        standalone_sensors = [name for name, sensor in self.sensors.items()
+                              if not hasattr(sensor, 'serial_manager')]
+
+        for sensor_name in standalone_sensors:
+            sensor = self.sensors[sensor_name]
+            try:
+                reading = sensor.read_data()
+                if reading:
+                    readings.append(reading)
+                    self.logger.debug(f"Read data from {sensor_name}")
+            except Exception as e:
+                self.logger.error(f"Error reading {sensor_name}: {e}")
+
+        return readings
+
+    def disconnect_all(self):
+        """Disconnect all sensors"""
+        for name, sensor in self.sensors.items():
+            try:
+                sensor.disconnect()
+                self.logger.info(f"Disconnected {name}")
+            except Exception as e:
+                self.logger.error(f"Error disconnecting {name}: {e}")
+
+        for port, serial_manager in self.serial_managers.items():
+            try:
+                serial_manager.disconnect()
+            except Exception as e:
+                self.logger.error(
+                    f"Error disconnecting serial manager {port}: {e}")
+
+
 def main():
     logging.info("Starting air quality monitoring system on Raspberry Pi...")
 
-    zce04b = ZCE04BSensor(port='/dev/ttyS0')
-    zh07 = ZH07Sensor(port='/dev/ttyS0')
-    zp07 = ZP07Sensor(warm_up_time=10)
+    # Create sensor manager
+    sensor_manager = SensorManager()
 
-    zce04b.connect()
-    time.sleep(1)
-    zh07.connect()
-    zp07.connect()
+    # Add sensors - use different ports or shared port management
+    sensor_manager.add_serial_sensor(
+        'ZCE04B', ZCE04BSensor, '/dev/ttyS0', 9600)
+    sensor_manager.add_serial_sensor(
+        'ZH07', ZH07Sensor, '/dev/ttyS0', 9600)  # Shared port
+    sensor_manager.add_standalone_sensor('ZP07', ZP07Sensor(warm_up_time=10))
+
+    # Connect all sensors
+    connection_results = sensor_manager.connect_all()
+
+    if not any(connection_results.values()):
+        logging.error("No sensors connected successfully. Exiting.")
+        return
 
     try:
         while True:
-            readings = []
+            readings = sensor_manager.read_all_sensors()
 
-            zce04b_reading = zce04b.read_data()
-            if zce04b_reading:
-                readings.append(zce04b_reading)
+            if readings:
+                logging.info(f"Collected {len(readings)} readings")
+                for reading in readings:
+                    print(json.dumps(reading.to_dict(), indent=2))
+            else:
+                logging.warning("No readings collected this cycle")
 
-            zh07_reading = zh07.read_data()
-            if zh07_reading:
-                readings.append(zh07_reading)
-
-            zp07_reading = zp07.read_data()
-            if zp07_reading:
-                readings.append(zp07_reading)
-
-            for reading in readings:
-                print(json.dumps(reading.to_dict(), indent=2))
-
-            time.sleep(5)
+            time.sleep(10)  # Increased delay between reading cycles
 
     except KeyboardInterrupt:
         logging.info("Shutting down sensors...")
 
     finally:
-        zce04b.disconnect()
-        zh07.disconnect()
-        zp07.disconnect()
+        sensor_manager.disconnect_all()
         logging.info("System shut down.")
 
 
