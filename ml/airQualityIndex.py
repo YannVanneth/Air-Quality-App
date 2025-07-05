@@ -475,10 +475,12 @@ if __name__ == "__main__":
     aqi_system.save_model("aqi_model.cbm")
     
     # Model info
+
     print("\n=== Model Information ===")
     model_info = aqi_system.get_model_info()
     print(f"Status: {model_info['status']}")
     print(f"Features: {model_info['feature_count']}")
     print(f"Test RMSE: {model_info['model_metrics']['test_rmse']:.4f}")
     print("\n=== AQI System Ready ===")
+
 

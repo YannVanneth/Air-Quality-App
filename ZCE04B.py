@@ -2,7 +2,6 @@ import serial
 import time
 import sys
 
-# Initialize serial port variable
 ser = None
 
 def init_serial_port(port='/dev/ttyS0', baudrate=9600, timeout=2):
@@ -265,3 +264,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    
+
+    
