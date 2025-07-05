@@ -1,0 +1,57 @@
+{
+  "feature_columns": [
+    "PM2.5",
+    "PM10",
+    "NO2",
+    "SO2",
+    "CO",
+    "O3",
+    "temperature",
+    "humidity",
+    "wind_speed",
+    "pressure",
+    "location",
+    "season",
+    "hour",
+    "day_of_week",
+    "month",
+    "day_of_year",
+    "is_weekend",
+    "is_rush_hour",
+    "PM_ratio",
+    "temp_humidity_interaction",
+    "wind_pressure_interaction",
+    "pollution_index"
+  ],
+  "categorical_features": [
+    "location",
+    "season"
+  ],
+  "model_metrics": {
+    "train_rmse": 9.762044228798489,
+    "test_rmse": 37.83860236486558,
+    "train_mae": 6.442992397881105,
+    "test_mae": 12.756522746014976,
+    "train_r2": 0.976043609733693,
+    "test_r2": 0.6758986992919276
+  },
+  "config": {
+    "model_params": {
+      "iterations": 1000,
+      "learning_rate": 0.1,
+      "depth": 8,
+      "eval_metric": "RMSE",
+      "random_seed": 42,
+      "verbose": 100
+    },
+    "data_params": {
+      "test_size": 0.2,
+      "random_state": 42
+    },
+    "feature_engineering": {
+      "create_interactions": true,
+      "create_time_features": true,
+      "normalize_features": false
+    }
+  }
+}
