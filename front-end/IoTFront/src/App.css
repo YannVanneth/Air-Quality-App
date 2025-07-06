@@ -1,0 +1,33 @@
+.ml-9{
+    margin-left: 150px;
+}
+.content-area{
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    margin-inline: 150px;
+}
+.col-6{
+    width: 50%;
+    margin-bottom: 30px;
+}
+.ml-9{
+    font-size: 20px;
+    font-weight: bold;
+}
+h4{
+    font-weight: bold;
+}
+.ml-9,.col-6{
+    padding-inline: 20px;
+}
+.item{
+    width: 100%;
+}
+.btn{
+    margin-top: 20px;
+}
+.item img{
+    width: 100%;
+    border-radius: 10px;
+}
