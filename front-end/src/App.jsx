@@ -8,21 +8,22 @@ import ReportsAnalytics from "./pages/ReportsAnalytics"
 import Home from "./pages/Home";
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Layout from "./layout/layout";
+
+
 function App() {
   return (
-    <>
-      <Router>
-        <Header />
+    <Router>
+      <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/air_quality" element={<AirQuality/> } />
-          <Route path="/report_analytics" element={<ReportsAnalytics/> } />
-          <Route path="/health_advice" element={<HealthAdvice/> } />
-          <Route path="/about_us" element={<AboutUs/> } />
+          <Route path="/air_quality" element={<AirQuality />} />
+          <Route path="/report_analytics" element={<ReportsAnalytics />} />
+          <Route path="/health_advice" element={<HealthAdvice />} />
+          <Route path="/about_us" element={<AboutUs />} />
         </Routes>
-        <Footer/>
-      </Router>
-    </>
+      </Layout>
+    </Router>
   );
 }
 
