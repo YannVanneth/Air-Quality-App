@@ -1,4 +1,3 @@
-
 import serial
 import time
 import json
@@ -68,15 +67,14 @@ class ZCE04BSensor:
         self.baudrate = baudrate
         self.ser = None
         self.logger = logging.getLogger(f"{__name__}.ZCE04B")
-        self.status = SensorReading.DISCONNECTED
+        self.status = SensorStatus.DISCONNECTED
         self.last_reading = None
 
     def connect(self) -> bool:
         try:
             self.status = SensorStatus.CONNECTING
             self.ser = serial.Serial(self.port, self.baudrate, timeout=2)
-            self.logger.info(f"Connected to ZCE04B on {
-                             self.port} at {self.baudrate} baud")
+            self.logger.info(f"Connected to ZCE04B on {self.port} at {self.baudrate} baud")
             self.status = SensorStatus.READY
             return True
         except Exception as e:
@@ -215,15 +213,159 @@ class ZH07Sensor:
             self.status = SensorStatus.CONNECTING
             self.ser = serial.Serial(self.port, self.baudrate, timeout=2)
             self.ser.reset_input_buffer()
-            self.logger.info(f"Connected to ZH07 on {
-                             self.port} at {self.baudrate} baud")
+            self.logger.info(f"Connected to ZH07 on {self.port} at {self.baudrate} baud")
             self.status = SensorStatus.READY
             return True
         except Exception as e:
             self.logger.error(f"Failed to connect to ZH07: {e}")
             self.status = SensorStatus.ERROR
             return False
+        
+    def check_sensor_communication(port, baud_rates=[9600, 2400, 4800, 19200, 38400, 57600, 115200]):
+        """
+        Test different baud rates to find correct communication settings for BM protocol sensors
+        
+        Args:
+            port (str): Serial port to test (e.g., 'COM3', '/dev/ttyUSB0')
+            baud_rates (list): List of baud rates to test
+        
+        Returns:
+            tuple: (working_baud_rate, raw_data) if found, (None, None) otherwise
+        """
+        print("Testing different baud rates...")
+        print("=" * 50)
+        
+        for baud in baud_rates:
+            print(f"\nTesting baud rate: {baud}")
+            ser = None
+            
+            try:
+                # Initialize serial connection
+                ser = serial.Serial(
+                    port=port,
+                    baudrate=baud,
+                    bytesize=serial.EIGHTBITS,
+                    parity=serial.PARITY_NONE,
+                    stopbits=serial.STOPBITS_ONE,
+                    timeout=2
+                )
+                
+                # Clear any existing data
+                ser.reset_input_buffer()
+                ser.reset_output_buffer()
+                
+                # Wait for sensor data
+                time.sleep(1.5)
+                
+                # Check for incoming data
+                if ser.in_waiting > 0:
+                    # Read available data (up to 32 bytes for full BM packet)
+                    data = ser.read(min(32, ser.in_waiting))
+                    print(f"  Data received ({len(data)} bytes): {list(data)}")
+                    print(f"  Hex: {' '.join(f'0x{b:02X}' for b in data)}")
+                    
+                    # Look for BM header pattern
+                    bm_found = False
+                    for i in range(len(data) - 1):
+                        if data[i] == 0x42 and data[i+1] == 0x4D:
+                            print(f"  ✓ Found 'BM' header at position {i}")
+                            
+                            # Additional validation: check if we have enough data for a packet
+                            if i + 4 < len(data):
+                                # Extract frame length from BM packet
+                                frame_length = (data[i+2] << 8) | data[i+3]
+                                print(f"  Frame length: {frame_length} bytes")
+                                
+                                # Common BM sensor frame lengths
+                                if frame_length in [20, 24, 28, 32]:
+                                    print(f"  ✓ Valid frame length detected")
+                                    bm_found = True
+                                    break
+                            else:
+                                bm_found = True
+                                break
+                    
+                    if bm_found:
+                        print(f"  ✓ Successfully communicating at {baud} baud")
+                        return baud, data
+                    else:
+                        print("  ✗ No valid BM header found")
+                        
+                else:
+                    print("  No data received")
+                    
+            except serial.SerialException as e:
+                print(f"  Serial error: {e}")
+            except Exception as e:
+                print(f"  Unexpected error: {e}")
+            finally:
+                # Ensure serial port is always closed
+                if ser and ser.is_open:
+                    ser.close()
+        
+        print("\n" + "=" * 50)
+        print("No working baud rate found")
+        return None, None
 
+
+    def get_sensor_info(port, baud_rate, read_time=5):
+        """
+        Read sensor data for a specified time to analyze packet structure
+        
+        Args:
+            port (str): Serial port
+            baud_rate (int): Confirmed working baud rate
+            read_time (int): Time to read data in seconds
+        
+        Returns:
+            list: List of complete packets found
+        """
+        print(f"\nReading sensor data at {baud_rate} baud for {read_time} seconds...")
+        print("=" * 50)
+        
+        try:
+            ser = serial.Serial(port, baud_rate, timeout=1)
+            ser.reset_input_buffer()
+            
+            start_time = time.time()
+            packet_count = 0
+            captured_packets = []
+            
+            while time.time() - start_time < read_time:
+                if ser.in_waiting > 0:
+                    data = ser.read(ser.in_waiting)
+                    
+                    # Look for complete BM packets
+                    i = 0
+                    while i < len(data) - 1:
+                        if data[i] == 0x42 and data[i+1] == 0x4D:
+                            if i + 4 < len(data):
+                                frame_length = (data[i+2] << 8) | data[i+3]
+                                packet_end = i + frame_length + 4
+                                
+                                if packet_end <= len(data):
+                                    packet = data[i:packet_end]
+                                    packet_count += 1
+                                    captured_packets.append(packet)
+                                    print(f"Packet {packet_count}: {' '.join(f'{b:02X}' for b in packet)}")
+                                    i = packet_end
+                                else:
+                                    break
+                            else:
+                                break
+                        else:
+                            i += 1
+                
+                time.sleep(0.1)
+            
+            ser.close()
+            print(f"\nCaptured {packet_count} complete packets")
+            return captured_packets
+            
+        except Exception as e:
+            print(f"Error reading sensor data: {e}")
+            return []
+        
     def read_data(self) -> Optional[SensorReading]:
         """Read PM2.5 and PM10 data"""
         if self.status != SensorStatus.READY:
@@ -420,8 +562,8 @@ class ZP07Sensor:
 def main():
     logging.info("Starting air quality monitoring system on Raspberry Pi...")
 
-    zce04b = ZCE04BSensor(port='/dev/ttyS0')
-    zh07 = ZH07Sensor(port='/dev/ttyS0')
+    zce04b = ZCE04BSensor(port='/dev/ttyUSB0')
+    zh07 = ZH07Sensor(port='/dev/ttyUSB1')
     zp07 = ZP07Sensor(warm_up_time=10)
 
     zce04b.connect()
@@ -437,7 +579,10 @@ def main():
             if zce04b_reading:
                 readings.append(zce04b_reading)
 
-            zh07_reading = zh07.read_data()
+            #zh07_reading = zh07.read_data()
+            
+            zh07_reading = zh07.get_sensor_info('/dev/ttyUSB1', '9600')
+            
             if zh07_reading:
                 readings.append(zh07_reading)
 
@@ -462,3 +607,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
