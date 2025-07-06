@@ -553,6 +553,166 @@ class SensorManager:
                     f"Error disconnecting serial manager {port}: {e}")
 
 
+class ZE08CH20Sensor:
+    def __init__(self, serial_manager: SerialManager):
+        self.serial_manager = serial_manager
+        self.logger = logging.getLogger(f'{__name__}ZE08CH20')
+        self.status = SensorStatus.DISCONNECTED
+        self.last_reading = None
+        self.qa_mode = False
+
+    def connect(self) -> bool:
+        try:
+            self.status = SensorStatus.CONNECTING
+            if self.serial_manager.connect()
+
+
+class MHZ19CSensor:
+    def __init__(self, serial_manager: SerialManager):
+        self.serial_manager = serial_manager
+        self.logger = logging.getLogger(f'{__name__}.MHZ19C')
+        self.status = SensorStatus.DISCONNECTED
+        self.last_reading = None
+        self.caliberation_mode = False
+
+    def connect(self) -> bool:
+        """Initialize MH-Z19C sensor"""
+        try:
+            self.status = SensorStatus.CONNECTING
+            if self.serial_manager.connect():
+                # Test communication
+                if self._test_communication():
+                    self.logger.info("MH-Z19C sensor initialized successfully")
+                    self.status = SensorStatus.READY
+                    return True
+
+            self.status = SensorStatus.ERROR
+            return False
+
+        except Exception as e:
+            self.logger.error(f"Failed to initialize MH-Z19C: {e}")
+            self.status = SensorStatus.ERROR
+            return False
+
+    def _test_communication(self) -> bool:
+        """Test sensor communication"""
+        try:
+            # Send read command
+            command = bytes(
+                [0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79])
+            response = self.serial_manager.read_write(
+                command, read_timeout=2.0, expected_length=9)
+
+            if response and len(response) == 9 and response[0] == 0xFF and response[1] == 0x86:
+                return True
+            return False
+
+        except Exception as e:
+            self.logger.error(f"Communication test failed: {e}")
+            return False
+
+    def calculate_checksum(self, data: bytes) -> int:
+        """Calculate checksum for MH-Z19C commands"""
+        return (0xFF - sum(data[1:8])) & 0xFF
+
+    def read_data(self) -> Optional[SensorReading]:
+        """Read CO2 concentration data"""
+        if self.status != SensorStatus.READY:
+            return None
+
+        try:
+            self.status = SensorStatus.READING
+
+            # Read CO2 concentration command
+            command = bytes(
+                [0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79])
+            response = self.serial_manager.read_write(
+                command, read_timeout=2.0, expected_length=9)
+
+            if response and len(response) == 9:
+                # Verify response header
+                if response[0] == 0xFF and response[1] == 0x86:
+                    # Extract CO2 concentration
+                    co2_ppm = (response[2] << 8) | response[3]
+                    temperature = response[4] - 40  # Temperature offset
+                    status_byte = response[5]
+
+                    # Additional data validation
+                    if 0 <= co2_ppm <= 5000:  # Reasonable CO2 range
+                        data = {
+                            'co2_ppm': float(co2_ppm),
+                            'temperature_c': float(temperature),
+                            'status_byte': status_byte
+                        }
+
+                        quality_level = self._determine_quality_level(data)
+
+                        reading = SensorReading(
+                            timestamp=datetime.now(),
+                            sensor_id='MHZ19C_001',
+                            sensor_type='co2',
+                            data=data,
+                            status=SensorStatus.READY,
+                            quality_level=quality_level,
+                            raw_data=response
+                        )
+
+                        self.last_reading = reading
+                        self.status = SensorStatus.READY
+                        return reading
+                    else:
+                        self.logger.warning(
+                            f"Invalid CO2 reading: {co2_ppm} ppm")
+
+        except Exception as e:
+            self.logger.error(f"Error reading MH-Z19C data: {e}")
+            self.status = SensorStatus.ERROR
+
+        self.status = SensorStatus.READY
+        return None
+
+    def _determine_quality_level(self, data: Dict[str, float]) -> AirQualityLevel:
+        """Determine air quality level based on CO2 concentration"""
+        co2_ppm = data.get('co2_ppm', 0)
+
+        if co2_ppm > 5000:
+            return AirQualityLevel.HAZARDOUS
+        elif co2_ppm > 2000:
+            return AirQualityLevel.VERY_UNHEALTHY
+        elif co2_ppm > 1000:
+            return AirQualityLevel.UNHEALTHY
+        elif co2_ppm > 800:
+            return AirQualityLevel.UNHEALTHY_SENSITIVE
+        elif co2_ppm > 600:
+            return AirQualityLevel.MODERATE
+        elif co2_ppm > 400:
+            return AirQualityLevel.GOOD
+        else:
+            return AirQualityLevel.EXCELLENT
+
+    def calibrate_zero_point(self) -> bool:
+        """Calibrate zero point (400ppm fresh air)"""
+        try:
+            self.logger.info("Starting zero point calibration...")
+            command = bytes(
+                [0xFF, 0x01, 0x87, 0x00, 0x00, 0x00, 0x00, 0x00, 0x78])
+            response = self.serial_manager.read_write(
+                command, read_timeout=2.0)
+
+            if response and len(response) == 9:
+                self.logger.info("Zero point calibration completed")
+                return True
+            return False
+
+        except Exception as e:
+            self.logger.error(f"Calibration failed: {e}")
+            return False
+
+    def disconnect(self):
+        """Disconnect from sensor"""
+        self.status = SensorStatus.DISCONNECTED
+
+
 def main():
     logging.info("Starting air quality monitoring system on Raspberry Pi...")
 
