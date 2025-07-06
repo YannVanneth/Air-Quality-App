@@ -1,0 +1,17 @@
+.coming-soon{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 31vh;
+}
+.cursor {
+  display: inline-block;
+  margin-left: 2px;
+  animation: blink 1s step-start infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
