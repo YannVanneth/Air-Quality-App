@@ -27,9 +27,10 @@ function Header() {
             <li>
               <Link to={"/about_us"}>About Us</Link>
             </li>
+            
           </ul>
 
-          <a href="#" className="btn">
+          <a href="" className="btn">
             Get started
           </a>
         </div>
