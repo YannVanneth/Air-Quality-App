@@ -6,11 +6,16 @@
 set -e
 
 # Default commit message if none is provided
-COMMIT_MESSAGE="${1:-Auto commit on $(date +'%Y-%m-%d %H:%M:%S')}"
 
 # Display current branch
+#
+#
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo "📦 Pushing to branch: $BRANCH"
+
+$BRANCH = 'raspberrypi'
+
+
 
 # Add all changes
 git add .
