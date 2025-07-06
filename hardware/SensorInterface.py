@@ -1,4 +1,4 @@
-
+from abc import ABC, abstractmethod
 from typing import Enum, Dict, Optional, Any
 import datetime
 import logging
@@ -46,3 +46,27 @@ class SensorReading:
             'quality_level': self.quality_level.value,
             'raw_data': self.raw_data.hex() if self.raw_data else None
         }
+
+
+class BaseSensor(ABC):
+
+    @abstractmethod
+    def connect(self) -> bool:
+        pass
+
+    @abstractmethod
+    def disconnect(self) -> None:
+        pass
+
+    @abstractmethod
+    def read_data(self) -> Optional[SensorReading]:
+        pass
+
+    @abstractmethod
+    def __enter__(self):
+        self.connect()
+        return self
+
+    @abstractmethod
+    def __exit__(self) -> bool:
+        self.disconnect()
