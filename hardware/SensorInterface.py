@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Enum, Dict, Optional, Any
-import datetime
+from typing import Dict, Optional, Any
+from enum import Enum
+from datetime import datetime
 import logging
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 
 class SensorStatus(Enum):
@@ -17,6 +18,7 @@ class SensorStatus(Enum):
 
 
 class AirQualityLevel(Enum):
+    """Air quality level enumeration"""
     EXCELLENT = 0
     GOOD = 1
     MODERATE = 2
@@ -28,6 +30,7 @@ class AirQualityLevel(Enum):
 
 @dataclass
 class SensorReading:
+    """Data structure for sensor readings"""
     timestamp: datetime
     sensor_id: str
     sensor_type: str
@@ -37,6 +40,7 @@ class SensorReading:
     raw_data: Optional[bytes] = None
 
     def to_dict(self) -> Dict[str, Any]:
+        """Convert sensor reading to dictionary format"""
         return {
             'timestamp': self.timestamp.isoformat(),
             'sensor_id': self.sensor_id,
@@ -49,24 +53,31 @@ class SensorReading:
 
 
 class BaseSensor(ABC):
+    """Abstract base class for all sensor implementations"""
 
     @abstractmethod
     def connect(self) -> bool:
+        """Connect to the sensor. Returns True if successful."""
         pass
 
     @abstractmethod
     def disconnect(self) -> None:
+        """Disconnect from the sensor."""
         pass
 
     @abstractmethod
     def read_data(self) -> Optional[SensorReading]:
+        """Read data from the sensor. Returns SensorReading or None if failed."""
         pass
 
-    @abstractmethod
     def __enter__(self):
-        self.connect()
-        return self
+        """Context manager entry - connect to sensor"""
+        if self.connect():
+            return self
+        else:
+            raise RuntimeError("Failed to connect to sensor")
 
-    @abstractmethod
-    def __exit__(self) -> bool:
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - disconnect from sensor"""
         self.disconnect()
+        return False

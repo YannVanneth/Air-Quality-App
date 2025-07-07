@@ -21,7 +21,7 @@ def main():
 
     sensors = [
         ZCE04BSensor(port='/dev/ttyS0', sensor_id="GAS_SENSOR_01"),
-        ZH07(port='/dev/ttyUSB0', sensor_id="PM_SENSOR_01", baud_rate=9600)
+       # ZH07(port='/dev/ttyUSB0', sensor_id="PM_SENSOR_01", baud_rate=9600)
     ]
 
     for sensor in sensors:
