@@ -139,7 +139,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='Debug ZH07 sensor header issues')
-    parser.add_argument('--port', default='/dev/serial0', help='Serial port')
+    parser.add_argument('--port', default='/dev/ttyUSB0', help='Serial port')
     parser.add_argument('--baud', type=int, default=9600, help='Baud rate')
     parser.add_argument('--readings', type=int, default=10, help='Number of readings to analyze')
     parser.add_argument('--test-baud', action='store_true', help='Test different baud rates')

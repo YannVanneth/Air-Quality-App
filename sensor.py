@@ -68,15 +68,14 @@ class ZCE04BSensor:
         self.baudrate = baudrate
         self.ser = None
         self.logger = logging.getLogger(f"{__name__}.ZCE04B")
-        self.status = SensorReading.DISCONNECTED
+        self.status = SensorStatus.DISCONNECTED
         self.last_reading = None
 
     def connect(self) -> bool:
         try:
             self.status = SensorStatus.CONNECTING
             self.ser = serial.Serial(self.port, self.baudrate, timeout=2)
-            self.logger.info(f"Connected to ZCE04B on {
-                             self.port} at {self.baudrate} baud")
+            self.logger.info(f"Connected to ZCE04B on {self.port} at {self.baudrate} baud")
             self.status = SensorStatus.READY
             return True
         except Exception as e:
@@ -215,8 +214,7 @@ class ZH07Sensor:
             self.status = SensorStatus.CONNECTING
             self.ser = serial.Serial(self.port, self.baudrate, timeout=2)
             self.ser.reset_input_buffer()
-            self.logger.info(f"Connected to ZH07 on {
-                             self.port} at {self.baudrate} baud")
+            self.logger.info(f"Connected to ZH07 on {self.port} at {self.baudrate} baud")
             self.status = SensorStatus.READY
             return True
         except Exception as e:
@@ -420,31 +418,31 @@ class ZP07Sensor:
 def main():
     logging.info("Starting air quality monitoring system on Raspberry Pi...")
 
-    zce04b = ZCE04BSensor(port='/dev/ttyS0')
+ #   zce04b = ZCE04BSensor(port='/dev/ttyUSB0')
     zh07 = ZH07Sensor(port='/dev/ttyS0')
-    zp07 = ZP07Sensor(warm_up_time=10)
+ #   zp07 = ZP07Sensor(warm_up_time=10)
 
-    zce04b.connect()
+    #zce04b.connect()
     time.sleep(1)
     zh07.connect()
-    zp07.connect()
+    #zp07.connect()
 
     try:
         while True:
             readings = []
 
-            zce04b_reading = zce04b.read_data()
-            if zce04b_reading:
-                readings.append(zce04b_reading)
+#            zce04b_reading = zce04b.read_data()
+#            if zce04b_reading:
+#                readings.append(zce04b_reading)
 
             zh07_reading = zh07.read_data()
             if zh07_reading:
                 readings.append(zh07_reading)
 
-            zp07_reading = zp07.read_data()
-            if zp07_reading:
-                readings.append(zp07_reading)
-
+#            zp07_reading = zp07.read_data()
+#            if zp07_reading:
+#                readings.append(zp07_reading)
+#
             for reading in readings:
                 print(json.dumps(reading.to_dict(), indent=2))
 
@@ -454,9 +452,9 @@ def main():
         logging.info("Shutting down sensors...")
 
     finally:
-        zce04b.disconnect()
+#        zce04b.disconnect()
         zh07.disconnect()
-        zp07.disconnect()
+#        zp07.disconnect()
         logging.info("System shut down.")
 
 
