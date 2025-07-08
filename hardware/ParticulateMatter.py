@@ -3,7 +3,7 @@ import serial
 import time
 import logging
 from typing import Optional, Dict
-from SensorInterface import BaseSensor, SensorReading, SensorStatus, AirQualityLevel
+from hardware.SensorInterface import BaseSensor, SensorReading, SensorStatus, AirQualityLevel
 from datetime import datetime
 
 
@@ -99,26 +99,65 @@ class ZH07(BaseSensor):
             
             if self.serial_conn.in_waiting == 0:
                 return None
+            
+            all_data = []
                 
             data = self.serial_conn.read(self.serial_conn.in_waiting)
-            packet = self._extract_valid_packet(data)
             
-            if not packet:
-                self.logger.debug("No valid packet found")
-                return None
-                
-            pm25 = (packet[2] << 8) | packet[3]
-            pm10 = (packet[4] << 8) | packet[5]
-            
-            if not (self.VALID_PM_RANGE[0] <= pm25 <= self.VALID_PM_RANGE[1] and
-                    self.VALID_PM_RANGE[0] <= pm10 <= self.VALID_PM_RANGE[1] and
-                    pm10 >= pm25):
-                raise ValueError(f"Invalid PM values: PM2.5={pm25}, PM10={pm10}")
+            all_data.extend(data)
+           
+            bm_positions = []
 
+            for i in range(len(all_data) - 1):
+                if all_data[i] == 0x42 and all_data[i+1] == 0x4D:
+                    bm_positions.append(i)
+            
+            if bm_positions:
+                print(f"Found 'BM' headers at positions: {bm_positions}")
+                
+                # Check if we can extract 9-byte packets
+                for pos in bm_positions:
+                    if pos + 8 < len(all_data):
+                        packet = all_data[pos:pos+9]
+                        print(f"\nPacket starting at position {pos}:")
+                        print(f"  Bytes: {packet}")
+                        print(f"  Hex: {[f'0x{b:02X}' for b in packet]}")
+                        
+                        # Check checksum
+                        calculated_checksum = sum(packet[0:8]) % 256
+                        received_checksum = packet[8]
+                        checksum_valid = calculated_checksum == received_checksum
+                        
+                        print(f"  Checksum: Calc=0x{calculated_checksum:02X}, Recv=0x{received_checksum:02X}, Valid={checksum_valid}")
+                        
+                        # Extract PM values
+                        pm25 = (packet[2] << 8) | packet[3]
+                        pm10 = (packet[4] << 8) | packet[5]
+                        print(f"  PM2.5: {pm25}, PM10: {pm10}")
+            
             sensor_data = {
                 'pm2.5': pm25,
                 'pm10': pm10
             }
+
+            # packet = self._extract_valid_packet(data)
+            
+            # if not packet:
+            #     self.logger.debug("No valid packet found")
+            #     return None
+                
+            # pm25 = (packet[2] << 8) | packet[3]
+            # pm10 = (packet[4] << 8) | packet[5]
+            
+            # if not (self.VALID_PM_RANGE[0] <= pm25 <= self.VALID_PM_RANGE[1] and
+            #         self.VALID_PM_RANGE[0] <= pm10 <= self.VALID_PM_RANGE[1] and
+            #         pm10 >= pm25):
+            #     raise ValueError(f"Invalid PM values: PM2.5={pm25}, PM10={pm10}")
+
+            # sensor_data = {
+            #     'pm2.5': pm25,
+            #     'pm10': pm10
+            # }
             
             return SensorReading(
                 timestamp=datetime.now(),

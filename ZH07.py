@@ -6,14 +6,6 @@ import serial
 import time
 
 def debug_zh07_header(ser, num_readings=10):
-    """
-    Debug tool to analyze ZH07 header issues
-    """
-    print("ZH07 Header Debug Tool")
-    print("=" * 50)
-    print("Expected header: 'BM' (0x42 0x4D)")
-    print("Analyzing incoming data...\n")
-    
     readings_count = 0
     all_data = []
     
@@ -139,11 +131,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='Debug ZH07 sensor header issues')
-<<<<<<< HEAD
-    parser.add_argument('--port', default='/dev/ttyUSB0', help='Serial port')
-=======
     parser.add_argument('--port', default='/dev/ttyUSB1', help='Serial port')
->>>>>>> bb2ccc373fbcc4c5633ff95ef34553c205043db8
     parser.add_argument('--baud', type=int, default=9600, help='Baud rate')
     parser.add_argument('--readings', type=int, default=10, help='Number of readings to analyze')
     parser.add_argument('--test-baud', action='store_true', help='Test different baud rates')
