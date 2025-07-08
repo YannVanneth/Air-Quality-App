@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import 'leaflet/dist/leaflet.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -122,6 +123,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -130,20 +132,16 @@
 /* Custom utilities for the enhanced design */
 @layer utilities {
   .bg-grid-pattern {
-    background-image: radial-gradient(
-      circle at 1px 1px,
-      rgba(255, 255, 255, 0.15) 1px,
-      transparent 0
-    );
+    background-image: radial-gradient(circle at 1px 1px,
+        rgba(255, 255, 255, 0.15) 1px,
+        transparent 0);
     background-size: 20px 20px;
   }
 
   .dark .bg-grid-pattern {
-    background-image: radial-gradient(
-      circle at 1px 1px,
-      rgba(255, 255, 255, 0.1) 1px,
-      transparent 0
-    );
+    background-image: radial-gradient(circle at 1px 1px,
+        rgba(255, 255, 255, 0.1) 1px,
+        transparent 0);
   }
 
   .glass-effect {
@@ -164,10 +162,12 @@
   }
 
   @keyframes float {
+
     0%,
     100% {
       transform: translateY(0px);
     }
+
     50% {
       transform: translateY(-10px);
     }
@@ -178,10 +178,12 @@
   }
 
   @keyframes pulse-slow {
+
     0%,
     100% {
       opacity: 1;
     }
+
     50% {
       opacity: 0.8;
     }
@@ -260,29 +262,26 @@ a,
 
 /* Enhanced loading animations */
 .loading-shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.4),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
 .dark .loading-shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent);
 }
 
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -294,10 +293,12 @@ a,
 }
 
 @keyframes status-pulse {
+
   0%,
   100% {
     box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
   }
+
   50% {
     box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
   }

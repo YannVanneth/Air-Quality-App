@@ -16,7 +16,7 @@ import {
 import { Satellite, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useCallback } from "react";
-
+import MapRe from '@/components/map'
 const mapData = [
   {
     id: 1,
@@ -144,12 +144,13 @@ export default function AirQualityMap() {
             </div>
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
-            <div className="text-center text-red-500 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+            <MapRe />
+            {/* <div className="text-center text-red-500 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
               <p className="font-medium">Google Maps API Key Required</p>
               <p className="text-sm mt-1">
                 Please add your Google Maps API key to the .env.local file
               </p>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>
@@ -188,9 +189,8 @@ export default function AirQualityMap() {
         </CardHeader>
         <CardContent className="p-0">
           <div
-            className={`relative ${
-              isFullscreen ? "h-screen" : "h-64 sm:h-80 md:h-96"
-            } bg-gray-100 dark:bg-gray-800`}
+            className={`relative ${isFullscreen ? "h-screen" : "h-64 sm:h-80 md:h-96"
+              } bg-gray-100 dark:bg-gray-800`}
           >
             <GoogleMapsWrapper apiKey={apiKey}>
               <Map
