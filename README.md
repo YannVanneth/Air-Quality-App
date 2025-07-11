@@ -9,7 +9,7 @@ This project is a student assignment for the Royal University of Phnom Penh (RUP
 <h4>Instructor: <strong>Dr. Heng Sovannarith </strong></h4>
 <h4>👥 Contributors: </h4>
 <a href="https://github.com/YourRepoName/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=yannvanneth/Air-Quality-App" />
+  <img src="https://contrib.rocks/image?repo=DEVSMOS-TEAM/Air-Quality-App" />
 </a>
 
 <h4>Submission Date: </h4>
